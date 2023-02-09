@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -79,7 +80,7 @@ async def send_message(data, update, context, option: str):
 async def send_mortal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     data = get_username_id_from_update(update)
     if len(context.args) == 0:
-        await update.message.reply_text("Please send a message using /sendMortal <MSG>")
+        await update.message.reply_text("Please send a message using /sendmortal <MSG>")
         return
 
     await send_message(data, update, context, "mortal")
@@ -88,7 +89,7 @@ async def send_mortal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 async def send_angel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     data = get_username_id_from_update(update)
     if len(context.args) == 0:
-        await update.message.reply_text("Please send a message using /sendMortal <MSG>")
+        await update.message.reply_text("Please send a message using /sendangel <MSG>")
         return
 
     await send_message(data, update, context, "angel")
@@ -118,10 +119,12 @@ async def generate_pairing(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 if __name__ == "__main__":
-    application = Application.builder().token("6006404430:AAHTpuocTUHrQWw9hjIJVINhO4U0PO-aVhI").build()
+    token = os.getenv('ICY_TOKEN')
+
+    application = Application.builder().token(token).build()
 
     application.add_handler(CommandHandler("register", register))
-    application.add_handler(CommandHandler("sendMortal", send_mortal))
-    application.add_handler(CommandHandler("sendAngel", send_angel))
-    # application.add_handler(CommandHandler("generatePairing", generate_pairing))
+    application.add_handler(CommandHandler("sendmortal", send_mortal))
+    application.add_handler(CommandHandler("sendangel", send_angel))
+    application.add_handler(CommandHandler("generatePairing", generate_pairing))
     application.run_polling()
