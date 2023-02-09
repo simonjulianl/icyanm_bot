@@ -1,5 +1,4 @@
 import pandas as pd
-import os
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -119,7 +118,7 @@ async def generate_pairing(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 if __name__ == "__main__":
-    token = os.getenv('ICY_TOKEN')
+    token = "6006404431:AAHTpuocTUHrQWw9hjIJVINhO4U0PO-aVhI"
 
     application = Application.builder().token(token).build()
 
