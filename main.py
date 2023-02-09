@@ -118,7 +118,7 @@ async def generate_pairing(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 if __name__ == "__main__":
-    token = "6006404431:AAHTpuocTUHrQWw9hjIJVINhO4U0PO-aVhI"
+    token = "6006404430:AAHTpuocTUHrQWw9hjIJVINhO4U0PO-aVhI"
 
     application = Application.builder().token(token).build()
 
