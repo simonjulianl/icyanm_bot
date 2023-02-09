@@ -111,8 +111,8 @@ async def generate_pairing(update: Update, context: ContextTypes.DEFAULT_TYPE):
         df.loc[angel, 'mortal'] = mortal
         df.loc[mortal, 'angel'] = angel
 
-        chat_id_mortal = df.loc[[mortal]]['id'].values[0]
-        await context.bot.send_message(chat_id=str(chat_id_mortal), text=f"Your mortal is {mortal} !!")
+        angel_id_mortal = df.loc[[angel]]['id'].values[0]
+        await context.bot.send_message(chat_id=str(angel_id_mortal), text=f"Your mortal is {mortal} !!")
 
     df.to_csv(filename, sep=",")
 
