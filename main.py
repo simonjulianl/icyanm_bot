@@ -103,7 +103,7 @@ async def send_message(data, update, context, option: str):
 
         try:
             await context.bot.send_message(chat_id=group_chat_id,
-                                           text=f"A message from {other_username if option == 'mortal' else my_username} {'angel' if option == 'mortal' else 'mortal'}: \n\n{message}")
+                                           text=f"A message from @{other_username if option == 'mortal' else my_username} {'angel' if option == 'mortal' else 'mortal'}: \n\n{message}")
         except Exception:
             await update.message.reply_text("Seems that I cannot find the group :(, please register your group")
     except Exception as e:
