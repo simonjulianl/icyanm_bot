@@ -1,12 +1,13 @@
 import pandas as pd
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters, Updater
 
 filename = "user.csv"
 group_chat_id = None
 initial_message_id = None
 initial_message = ["Let's join ICy Angel and Mortal :)"]
 
+FIRST, SECOND = range(2)
 
 def generate_message():
     global initial_message
@@ -86,8 +87,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     initial_message_id = result.message_id
 
 
-async def send_message(data, update, context, option: str):
-    message = " ".join(context.args)
+async def send_message(data, update, context, message, option: str):
+    #message = " ".join(context.args)
 
     try:
         df = pd.read_csv(filename).set_index('name')
@@ -102,8 +103,12 @@ async def send_message(data, update, context, option: str):
             return
 
         try:
+            #await context.bot.send_message(chat_id=group_chat_id,
+                                            #text=f"@{other_username if option == 'mortal' else my_username} {'your angel sent' if option == 'mortal' else 'sent their angel'} a message: \n\n{message}")
+            await update.message.reply_text("Message sent!")
             await context.bot.send_message(chat_id=group_chat_id,
-                                           text=f"A message from @{other_username if option == 'mortal' else my_username} {'angel' if option == 'mortal' else 'mortal'}: \n\n{message}")
+                                            text=f"@{other_username if option == 'mortal' else my_username} {'your angel sent' if option == 'mortal' else 'sent their angel'} a message: \n\n{message}")
+                                           
         except Exception:
             await update.message.reply_text("Seems that I cannot find the group :(, please register your group")
     except Exception as e:
@@ -111,13 +116,23 @@ async def send_message(data, update, context, option: str):
         await update.message.reply_text("Something goes wrong :(")
 
 
-async def send_mortal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    data = get_username_id_from_update(update)
-    if len(context.args) == 0:
-        await update.message.reply_text("Please send a message using /sendmortal <MSG>")
-        return
+#async def send_mortal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    #data = get_username_id_from_update(update)
+    #if len(context.args) == 0:
+        #await update.message.reply_text("Please send a message using /sendmortal <MSG>")
+        #return
 
-    await send_message(data, update, context, "mortal")
+    #await send_message(data, update, context, "mortal")
+
+async def start_send_mortal(update:Update, context: ContextTypes.DEFAULT_TYPE)-> None:
+    await update.message.reply_text("Please enter your message for your mortal")
+    return FIRST
+
+async def get_message(update:Update,context:ContextTypes.DEFAULT_TYPE) -> None:
+    data = get_username_id_from_update(update)
+    message = update.message.text
+    await send_message(data,update,context,message,"mortal")
+    return ConversationHandler.END
 
 
 async def send_angel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -169,7 +184,14 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("help", help_message))
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("register", register))
-    application.add_handler(CommandHandler("sendmortal", send_mortal))
-    application.add_handler(CommandHandler("sendangel", send_angel))
+    #application.add_handler(CommandHandler("sendmortal", send_mortal))
+    application.add_handler(ConversationHandler(
+        entry_points=[CommandHandler('sendmortal',start_send_mortal)],
+        states={
+            FIRST:[MessageHandler(filters.TEXT & ~filters.COMMAND,get_message)]
+        },
+        fallbacks=[]
+    ))
+    #application.add_handler(CommandHandler("sendangel", send_angel))
     application.add_handler(CommandHandler("generatePairing", generate_pairing))
     application.run_polling()
