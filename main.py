@@ -172,7 +172,7 @@ async def help_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                                     "2. call /start in that group\n"
                                     "3. For each player, send /register in private message to the bot!\n"
                                     "4. Wait to be paired up >:(\n"
-                                    "5. Send each other well wishes using /sendangel and /sendmortal to send to your angel and mortal respectively!!\n\n"
+                                    "5. Send each other well wishes using /sendmortal to send to your angel and mortal respectively!!\n\n"
                                     "Alrighty, have fun bois and gals :)")
 
 
