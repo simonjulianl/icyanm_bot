@@ -69,11 +69,6 @@ def get_id_from_group(update: Update) -> str:
 
 async def add_to_group(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global group_chat_id
-    message_type = update.message.chat.type
-    if message_type == "private":
-        logger.info(f"The following chat {update.message.chat.first_name} is trying to start the message in pm")
-        await update.message.reply_text("You cannot start this bot in private message :)")
-        return
 
     logger.info(
         f"Adding the bot to the following group {update.message.chat.title} by {update.message.from_user.first_name}"
@@ -104,6 +99,12 @@ async def register(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message_type = update.message.chat.type
+    if message_type == "private":
+        logger.info(f"The following chat {update.message.chat.first_name} is trying to start the message in pm")
+        await update.message.reply_text("You cannot start this bot in private message :)")
+        return
+
     await add_to_group(update, context)
     global initial_message_id
     result = await context.bot.send_message(chat_id=group_chat_id, text=generate_message())
