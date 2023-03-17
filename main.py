@@ -53,7 +53,8 @@ class Person:
             else:
                 df = pd.concat([df, temp_df])
             df.to_csv(filename, sep=',')
-        except Exception:
+        except Exception as e:
+            logger.critical(f"Unable to write the person because of {e}")
             temp_df.to_csv(filename, sep=",")
 
 
@@ -92,7 +93,6 @@ async def register(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("You have registered, please don't register twice >:(")
         return
 
-    initial_message.append(p.name)
     await context.bot.edit_message_text(chat_id=group_chat_id, message_id=initial_message_id,
                                         text=generate_message())
     await update.message.reply_text("Registration Successful!")
