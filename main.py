@@ -1,6 +1,17 @@
 import pandas as pd
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters, Updater
+from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters, \
+    Updater
+import logging
+
+# Enable logging
+logging.basicConfig(
+    filename='icy_telebot_log.txt',
+    filemode='a',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 filename = "user.csv"
 group_chat_id = None
@@ -8,6 +19,7 @@ initial_message_id = None
 initial_message = ["Let's join ICy Angel and Mortal :)"]
 
 FIRST, SECOND = range(2)
+
 
 def generate_message():
     global initial_message
@@ -88,8 +100,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def send_message(data, update, context, message, option: str):
-    #message = " ".join(context.args)
-
     try:
         df = pd.read_csv(filename).set_index('name')
         my_username = data['username']
@@ -103,35 +113,26 @@ async def send_message(data, update, context, message, option: str):
             return
 
         try:
-            #await context.bot.send_message(chat_id=group_chat_id,
-                                            #text=f"@{other_username if option == 'mortal' else my_username} {'your angel sent' if option == 'mortal' else 'sent their angel'} a message: \n\n{message}")
             await update.message.reply_text("Message sent!")
             await context.bot.send_message(chat_id=group_chat_id,
-                                            text=f"@{other_username if option == 'mortal' else my_username} {'your angel sent' if option == 'mortal' else 'sent their angel'} a message: \n\n{message}")
-                                           
+                                           text=f"@{other_username if option == 'mortal' else my_username} {'your angel sent' if option == 'mortal' else 'sent their angel'} a message: \n\n{message}")
+
         except Exception:
             await update.message.reply_text("Seems that I cannot find the group :(, please register your group")
     except Exception as e:
-        print(e)
+        logger.critical(f"Unable to send message because of {e}")
         await update.message.reply_text("Something goes wrong :(")
 
 
-#async def send_mortal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    #data = get_username_id_from_update(update)
-    #if len(context.args) == 0:
-        #await update.message.reply_text("Please send a message using /sendmortal <MSG>")
-        #return
-
-    #await send_message(data, update, context, "mortal")
-
-async def start_send_mortal(update:Update, context: ContextTypes.DEFAULT_TYPE)-> None:
+async def start_send_mortal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Please enter your message for your mortal")
     return FIRST
 
-async def get_message(update:Update,context:ContextTypes.DEFAULT_TYPE) -> None:
+
+async def get_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     data = get_username_id_from_update(update)
     message = update.message.text
-    await send_message(data,update,context,message,"mortal")
+    await send_message(data, update, context, message, "mortal")
     return ConversationHandler.END
 
 
@@ -179,19 +180,22 @@ async def help_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 if __name__ == "__main__":
     token = "6006404430:AAHTpuocTUHrQWw9hjIJVINhO4U0PO-aVhI"
 
-    application = Application.builder().token(token).build()
+    try:
+        logger.info("Starting the bot")
+        application = Application.builder().token(token).build()
 
-    application.add_handler(CommandHandler("help", help_message))
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("register", register))
-    #application.add_handler(CommandHandler("sendmortal", send_mortal))
-    application.add_handler(ConversationHandler(
-        entry_points=[CommandHandler('sendmortal',start_send_mortal)],
-        states={
-            FIRST:[MessageHandler(filters.TEXT & ~filters.COMMAND,get_message)]
-        },
-        fallbacks=[]
-    ))
-    #application.add_handler(CommandHandler("sendangel", send_angel))
-    application.add_handler(CommandHandler("generatePairing", generate_pairing))
-    application.run_polling()
+        application.add_handler(CommandHandler("help", help_message))
+        application.add_handler(CommandHandler("start", start))
+        application.add_handler(CommandHandler("register", register))
+        application.add_handler(ConversationHandler(
+            entry_points=[CommandHandler('sendmortal', start_send_mortal)],
+            states={
+                FIRST: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_message)]
+            },
+            fallbacks=[]
+        ))
+        # application.add_handler(CommandHandler("sendangel", send_angel))
+        application.add_handler(CommandHandler("generatePairing", generate_pairing))
+        application.run_polling()
+    except Exception as e:
+        logger.critical(f"Restarting the app because of {e}")
