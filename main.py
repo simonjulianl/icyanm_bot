@@ -16,15 +16,15 @@ logger = logging.getLogger(__name__)
 filename = "user.csv"
 group_chat_id = None
 initial_message_id = None
-initial_message = ["Let's join ICy Angel and Mortal :)"]
+initial_message = "Let's join ICy Angel and Mortal :)\n"
 
 FIRST, SECOND = range(2)
 
 
 def generate_message():
-    global initial_message
-    message = initial_message[0] + "\n"
-    for index, username in enumerate(initial_message[1:], start=1):
+    names = pd.read_csv(filename)['name']
+    message = initial_message
+    for index, username in enumerate(names, start=1):
         message += f"{index}. {username}\n"
     return message
 
@@ -69,6 +69,15 @@ def get_id_from_group(update: Update) -> str:
 
 async def add_to_group(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global group_chat_id
+    message_type = update.message.chat.type
+    if message_type == "private":
+        logger.info(f"The following chat {update.message.chat.first_name} is trying to start the message in pm")
+        await update.message.reply_text("You cannot start this bot in private message :)")
+        return
+
+    logger.info(
+        f"Adding the bot to the following group {update.message.chat.title} by {update.message.from_user.first_name}"
+    )
     group_chat_id = get_id_from_group(update)
     await update.message.reply_text("Adding the bot successful!")
 
@@ -76,8 +85,10 @@ async def add_to_group(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def register(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     data = get_username_id_from_update(update)
     if update.message.chat.type == 'group':  # Group is not supposed to join
-        await update.message.reply_text("Group cannot join this game, don't be naughty!")
+        await update.message.reply_text("Group cannot join this game, if you want to join the AnM, please pm me :)")
         return
+
+    logger.info(f"New registration by {update.message}")
 
     p = Person(data['username'], data['id'])
     p.writeToCsv()
@@ -117,7 +128,8 @@ async def send_message(data, update, context, message, option: str):
             await context.bot.send_message(chat_id=group_chat_id,
                                            text=f"@{other_username if option == 'mortal' else my_username} {'your angel sent' if option == 'mortal' else 'sent their angel'} a message: \n\n{message}")
 
-        except Exception:
+        except Exception as e:
+            logger.critical(f"Unable to send the message because of {e}")
             await update.message.reply_text("Seems that I cannot find the group :(, please register your group")
     except Exception as e:
         logger.critical(f"Unable to send message because of {e}")
@@ -178,7 +190,7 @@ async def help_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 if __name__ == "__main__":
-    token = "6006404430:AAHTpuocTUHrQWw9hjIJVINhO4U0PO-aVhI"
+    token = "6125997203:AAFXBXfkMEWRR4LCSp26p5LGTUU9gn4hPZw"
 
     try:
         logger.info("Starting the bot")
