@@ -1,8 +1,8 @@
+import enum
+import logging
 import pandas as pd
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters, \
-    Updater
-import logging
+from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters
 
 # Enable logging
 logging.basicConfig(
@@ -18,6 +18,13 @@ group_chat_id = None
 initial_message_id = None
 initial_message = "Let's join ICy Angel and Mortal :)\n"
 
+
+class SupportedFiles(enum.Enum):
+    Text = 1
+    Sticker = 2
+
+
+CANCEL_MESSAGE = 'c'
 FIRST, SECOND = range(2)
 
 
@@ -111,7 +118,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     initial_message_id = result.message_id
 
 
-async def send_message(data, update, context, message, option: str):
+async def send_message(data, update, context, option: str):
     try:
         df = pd.read_csv(filename).set_index('name')
         my_username = data['username']
@@ -126,8 +133,23 @@ async def send_message(data, update, context, message, option: str):
 
         try:
             await update.message.reply_text("Message sent!")
-            await context.bot.send_message(chat_id=group_chat_id,
-                                           text=f"@{other_username if option == 'mortal' else my_username} {'your angel sent' if option == 'mortal' else 'sent their angel'} a message: \n\n{message}")
+            preamble_message = f"@{other_username if option == 'mortal' else my_username} {'your angel sent' if option == 'mortal' else 'sent their angel'}"
+            if data[SupportedFiles.Text] is not None:
+                message = data[SupportedFiles.Text]
+                await context.bot.send_message(
+                    chat_id=group_chat_id,
+                    text=f"{preamble_message} a message: \n\n{message}"
+                )
+            if data[SupportedFiles.Sticker] is not None:
+                sticker = data[SupportedFiles.Sticker]
+                await context.bot.send_message(
+                    chat_id=group_chat_id,
+                    text=f"{preamble_message} a sticker \n"
+                )
+                await context.bot.send_sticker(
+                    chat_id=group_chat_id,
+                    sticker=sticker,
+                )
 
         except Exception as e:
             logger.critical(f"Unable to send the message because of {e}")
@@ -138,24 +160,23 @@ async def send_message(data, update, context, message, option: str):
 
 
 async def start_send_mortal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Please enter your message for your mortal")
+    await update.message.reply_text(f"Please enter your message for your mortal (type '{CANCEL_MESSAGE}' to cancel)")
     return FIRST
 
 
 async def get_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     data = get_username_id_from_update(update)
-    message = update.message.text
-    await send_message(data, update, context, message, "mortal")
+    data[SupportedFiles.Sticker] = update.message.sticker
+    data[SupportedFiles.Text] = update.message.text
+    if data[SupportedFiles.Text] == CANCEL_MESSAGE:
+        await update.message.reply_text("Message cancelled :)")
+        return ConversationHandler.END
+
+    if all([(data[f] is None) for f in SupportedFiles]):
+        await update.message.reply_text("Unsupported message type :), please request @simonjulianl for extra features")
+    else:
+        await send_message(data, update, context, "mortal")
     return ConversationHandler.END
-
-
-async def send_angel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    data = get_username_id_from_update(update)
-    if len(context.args) == 0:
-        await update.message.reply_text("Please send a message using /sendangel <MSG>")
-        return
-
-    await send_message(data, update, context, "angel")
 
 
 async def generate_pairing(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -191,7 +212,8 @@ async def help_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 if __name__ == "__main__":
-    token = "6125997203:AAFXBXfkMEWRR4LCSp26p5LGTUU9gn4hPZw"
+    # token = "6249910789:AAFheDH7BAyhsxDEMs_njrakG4cqHxivA7I"  # my test boot
+    token = "6125997203:AAFXBXfkMEWRR4LCSp26p5LGTUU9gn4hPZw" # the real icy anm bot
 
     try:
         logger.info("Starting the bot")
@@ -203,11 +225,10 @@ if __name__ == "__main__":
         application.add_handler(ConversationHandler(
             entry_points=[CommandHandler('sendmortal', start_send_mortal)],
             states={
-                FIRST: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_message)]
+                FIRST: [MessageHandler(filters.ALL & ~filters.COMMAND, get_message)]
             },
             fallbacks=[]
         ))
-        # application.add_handler(CommandHandler("sendangel", send_angel))
         application.add_handler(CommandHandler("generatePairing", generate_pairing))
         application.run_polling()
     except Exception as e:
